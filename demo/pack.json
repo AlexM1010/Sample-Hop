@@ -1,0 +1,7 @@
+{
+  "name": "Sample Hop browser demo",
+  "samples": 300,
+  "licence": "CC0 1.0",
+  "source": "Freesound creators, via FSL10K and FSD50K",
+  "audio": "Browser MP3 previews; desktop uses your original files"
+}

@@ -17,3 +17,15 @@ __pycache__/
 .venv/
 .DS_Store
 Thumbs.db
+dist/
+.qa/
+desktop-source/
+
+# The 50k harvest (harvest_50k.py): too big for the repository (about 75 MB). Kept beside the training data
+# (distill-data/freesound-50k.json) as the copy that matters.
+freesound-50k.json
+freesound-50k.tmp
+
+# Working copies of the harvest
+freesound-50k.before-quality.json
+freesound-50k-truth.json

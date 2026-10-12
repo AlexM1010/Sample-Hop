@@ -1,4 +1,32 @@
-# Visualise Music — web
+# Sample Hop — desktop showcase
+
+The homepage is now an animated showcase with the actual desktop viewer and
+300 playable CC0 demo sounds. The previous Freesound map remains at
+`explore.html`.
+
+The desktop and website share `desktop/viewer.html`: no manual web port.
+The GitHub Pages workflow fetches desktop source, builds and tests the preview,
+and deploys only public site assets. Add the website's `DESKTOP_SOURCE_TOKEN`
+secret once for read access to the private desktop repo. Hourly sync then
+runs automatically; the optional desktop dispatch makes updates immediate.
+
+See [desktop preview and CI setup](docs/DESKTOP_PREVIEW.md) for the source
+contract, local build, tests, automatic updates and browser limitations.
+
+```powershell
+python scripts/build_preview.py --desktop ../desktop
+python scripts/check_showcase.py
+node scripts/check_viewer.mjs
+python -m http.server 8973 --bind 127.0.0.1
+```
+
+Open http://127.0.0.1:8973/.
+
+---
+
+The documentation below describes the preserved Freesound explorer.
+
+# Sample Hop — web
 
 An interactive map of Freesound samples, built for music producers. Samples are
 drawn as vinyl discs; clicking one plays it, `Tab` walks to the next sound the
@@ -19,9 +47,9 @@ Current build: **7,023 samples · 7,759 nodes · 31,849 edges · 19 communities*
 ## Running it
 
 The built map is <https://alexm1010.github.io/visualise-music/>. Nothing to
-install — it is the committed `index.html`, payload and all.
+install — it is the committed `explore.html`, payload and all.
 
-Locally, `index.html` is in the clone already, so there is nothing to build
+Locally, `explore.html` is in the clone already, so there is nothing to build
 first. The audio streams from `cdn.freesound.org`, so the page needs real
 network access — it works from `localhost` or any ordinary browser, and stays
 silent inside a sandbox that blocks remote hosts. Open it over HTTP, not
@@ -33,109 +61,28 @@ python -m http.server 8973 --bind 127.0.0.1
 
 then <http://127.0.0.1:8973/>.
 
-## The download button, and the coffee link
+## The Store link, and the coffee link
 
-**map your own samples**, at the right-hand end of the header. It does
-not start a download. It opens a panel, because nothing published here is signed
-and Windows is about to say so in a blue box whose only button is *Don't run* —
-and that is better said first, here, by the people shipping it, than met thirty
-seconds later as an accusation from the operating system. The panel carries the
-download, what that machine is going to do and how to get past it, and the
-checksum to check the file against.
-
-The panel is per-platform, and it guesses. A switch across the top — Windows,
-Linux — starts on whatever the page thinks it is being read on, and everything
-under it follows: the file offered, the size, the warning, and the one command
-the panel asks anybody to type, which is the same check spelled two ways
-(`Get-FileHash`, `sha256sum`). Anything that is neither — a phone, a Mac — gets
-Windows and the switch. Linux is the one platform with two files; the AppImage
-is offered and the `.deb` sits on a quiet line under it, because the AppImage
-needs no install and no root.
-
-**A platform with no row in `download.json` is said so, not offered.** The page
-reads that file rather than being told here what is published, so a release that
-built for one platform and not the other leaves the missing one saying *there is
-no build yet*, with its guidance hidden alongside — that guidance is about
-getting past a warning on a file that does not exist.
-
-That is a different silence from *no `download.json` at all* — a clone, a local
-server, anything before the first release. There the page has no idea what is
-published, so it keeps both sets of guidance and points them at the releases
-page.
-
-The button is still an `<a>` with a real `href` — the releases page — so a
-middle-click, a ctrl-click and a page whose script never ran all still go
-somewhere sensible. Only a plain left-click is taken. With no script at all the
-markup shows the Windows guidance, which is a guess rather than a detection and
-is the only honest one available without running anything.
+**Get it on the Microsoft Store**, at the right-hand end of the header, is a
+plain link to the desktop app's Microsoft Store listing, opened in a new tab.
+The Store is the only place the app comes from: there is no installer on this
+site or on GitHub Releases, and nothing here fetches a version number or a
+file list. It is the one control in the toolbar that is not grey, because the
+desktop build is what the page is for once somebody has a library of their own.
 
 **buy me a coffee** sits beside it and is an ordinary outbound link to
 <https://buymeacoffee.com/alexm1010>, opened in a new tab because the map is a
 working session — a basket, a query, a running layout — and navigating away from
 it loses all three. It is styled like the rest of the toolbar rather than like
-the download: a tip jar that competes with the thing being offered is a tip jar
+the Store link: a tip jar that competes with the thing being offered is a tip jar
 in the way.
 
-The panel fills itself in from `download.json`, beside `index.html`:
-
-```json
-{
-  "version": "0.2.0",
-  "tag": "v0.2.0",
-  "downloads": [
-    { "os": "windows", "arch": "x86_64",    "kind": "exe",
-      "url": "https://github.com/…/visualise-music_0.2.0_x64-setup.exe",
-      "sha256": "429ea9…", "size": 8123456 },
-    { "os": "linux",   "arch": "x86_64",    "kind": "appimage", "…": "…" },
-    { "os": "linux",   "arch": "x86_64",    "kind": "deb",   "…": "…" }
-  ]
-}
-```
-
-Facts only. There is no wording in that file — no "Windows 10 or 11, 64-bit", no
-"deb package" — because wording belongs in the page, where it can be reworded
-without cutting a release. The page offers the **first** row for a platform and
-puts any others on the quiet line beneath, which is why the order of that list
-is a decision and not a detail; `.github/check_site.py` holds it to it.
-
-**Nothing writes that file by hand.** The desktop repository's release workflow
-builds on one runner per platform, publishes every file to *this* repository —
-it holds the downloads as well as the site — and in the same run commits the
-`download.json` naming them. So the newest release is the one the button offers,
-and a version number never has to be edited here. It publishes every platform it
-builds or none of them: a release that failed to build somewhere leaves this
-file untouched and the button on the version before it.
-
-The file is read from this page's own origin rather than from `github.com`,
-which would cost a CORS header the page cannot require and a rate limit it
-cannot see. Absent — in a clone, on a local server, or at any moment
-before the first release — the panel still opens and still gives the warning,
-the download falls back to the releases page, and the checksum section stays
-hidden rather than offering a command with nothing to compare against.
-
-A row is only used if its URL is a release download on this repository and its
-`os` is one the panel has words for. It is a file this origin serves and CI
-wrote, so that check is a seatbelt rather than a boundary: the one outbound link
-on the page should not become an arbitrary destination because something was
-garbled. A row that fails it is dropped on its own — that platform falls back to
-the releases page while the other carries on.
-
-The panel is a `<dialog>`, so Esc closes it and the browser handles the focus.
-One thing it does need from the page: the map's single-key shortcuts are bound
-on `window` and skip keystrokes aimed at a control, which the panel's prose is
-not — so the handler returns early while it is open, or reading it would work
-`S` and `D` on a map nobody can see.
-
-`viewer.html` holds all of this, so a **rebuild carries it into `index.html`** —
-and a hand-edit of `index.html` alone does not survive the next build. That is
-the one way this can quietly break, so `.github/workflows/site.yml` checks it on
-every push: the button, its stylesheet rule, the panel, the coffee link, the
-platform switch and the fetch all have to be in `index.html` byte for byte as
-`viewer.html` now writes them, the panel has to still contain the words that
-warn about SmartScreen and about Linux warning you of nothing — only one of the
-two is ever on screen, so losing one is a thing nobody reading the page would
-see — and any `download.json` beside them has to be one the page would accept.
-It needs no secrets and touches no network.
+`viewer.html` holds both, so a **rebuild carries them into `explore.html`** — and
+a hand-edit of `explore.html` alone does not survive the next build. That is the
+one way this can quietly break, so `.github/workflows/site.yml` runs
+`.github/check_site.py` on every push: the Store link, its stylesheet rule and
+the coffee link all have to be in `explore.html` byte for byte as `viewer.html`
+now writes them. It needs no secrets and touches no network.
 
 ## Rebuilding
 
@@ -150,7 +97,7 @@ pip install -r requirements.txt
 python -u producer_graph.py
 ```
 
-Writes `index.html` — or wherever a positional argument points — by inlining the
+Writes `explore.html` — or wherever a positional argument points — by inlining the
 payload into `viewer.html`. Reads `freesound-raw.json`, spends **no API
 requests**, and takes about fifteen minutes, nearly all of it layout. Two
 consecutive cached builds are byte-identical, which is asserted rather than
@@ -175,7 +122,8 @@ don't. Both are still on every sample, in the tooltip, in search, and in the
 
 **Edges** are of two kinds, drawn differently on purpose. There are deliberately
 few of them: the graph read as a blob until the structural edges were cut from
-51,638 to 22,965, which took ink coverage from 47% of the canvas to 14%.
+51,638 to 22,965, which took ink coverage from 47% of the canvas to 14%. At
+7,023 samples there are 24,791 of them, beside 7,058 similarity edges.
 
 Two rules do that cutting. `TAG_MAX_SHARE` drops any tag on more than 6% of the
 corpus - `drum` is on 1,012 samples of 7,023, so it joined a seventh of the graph
@@ -259,9 +207,9 @@ that scrolls sideways and fades at the edge while there is more of it. Filters
 and Project come first on that line, because only three or four chips are on
 screen without a swipe. The search box is 16px, or iOS zooms the page the moment
 it is focused, and the chips are 36px - short of the 44 the platform guidelines
-ask for, because every pixel of toolbar is one the map does not get. The download
-link for the desktop build is not shown there: it is a Windows and Linux
-installer, which a phone has no use for.
+ask for, because every pixel of toolbar is one the map does not get. The Store
+link for the desktop build is not shown there: it is a Windows app, which a phone
+has no use for.
 
 The panels become bottom sheets on a phone, full width under the thumb, over a
 scrim that is an element of its own rather than a shadow, because a tap on a
@@ -602,14 +550,16 @@ than running the simulation.
 
 ## Arrangements
 
-`arrange` in the header opens the panel, and the three buttons at the top of it
-switch between the arrangements, each animating from wherever the last one left
-off — including from wherever the simulation has got to. **Only what is on screen
-is arranged**, so filtering first and arranging second is the intended order —
-and every arrangement re-runs when a filter changes.
+`arrange` in the header opens the panel, and the four cards at the top of it
+switch between the baked layout and the three arrangements, each animating from
+wherever the last one left off — including from wherever the simulation has got
+to. **Only what is on screen is arranged**, so filtering first and arranging
+second is the intended order — and every arrangement re-runs when a filter
+changes.
 
-The baked layout is not one of them: it is the state the page opens holding
-rather than something you can pick, and nothing now comes back to it. It never
+The baked layout is the first card, **original**, and not an arrangement: it is
+the builder's own `spring_layout`, the state the page opens holding, and the card
+is the way back to it after an arrangement or a run of the physics. It never
 moves — re-normalising it to whatever survived a filter would make the one fixed
 layout the least stable on the page. It is also the only one that places the
 *hidden* nodes — and through the same transform the visible ones went through.
@@ -649,12 +599,12 @@ sits, and the low-confidence keys are the ones the analyser gave a car crash, so
 they go in the margin with the rest of the missing data. A node missing one value
 still knows the other, so it sits in that axis's margin *at its true position on
 the axis it does have* — which turns the margin into a rug plot rather than a
-bin. The margins are sized to their own population: only 1,679 samples carry a
-trusted tempo, and a fixed thin strip holding the other 4,844 would be a black
+bin. The margins are sized to their own population: only 1,761 samples carry a
+trusted tempo, and a fixed thin strip holding the other 5,262 would be a black
 line, not a margin.
 
-Timbre is the axis pair this data is actually good for — every sample but 30 has
-all seven descriptors, against 1,376 with a trusted key.
+Timbre is the axis pair this data is actually good for — every sample but 32 has
+all seven descriptors, against 1,403 with a trusted key.
 
 Stacked points are the real problem at 7,023 samples, so `spacing` pushes them
 apart into a beeswarm; at 0 you get exact positions and nothing legible. That

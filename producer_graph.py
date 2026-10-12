@@ -98,7 +98,7 @@ from networkx.algorithms.community import louvain_communities
 
 SCRATCH = Path(__file__).parent
 _POS = [a for a in sys.argv[1:] if not a.startswith("--")]
-OUT = Path(_POS[0]) if _POS else SCRATCH / "index.html"
+OUT = Path(_POS[0]) if _POS else SCRATCH / "explore.html"
 # Read only if something is going to be fetched. A local build makes no requests,
 # and should not need a credential to prove it.
 _KEYFILE = SCRATCH / "freesound.key"

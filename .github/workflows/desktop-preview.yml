@@ -1,0 +1,98 @@
+name: Desktop preview and Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  repository_dispatch:
+    types: [desktop-viewer-updated]
+  workflow_dispatch:
+  # Dispatch is an optional immediate fast path; the schedule also repairs a
+  # missed dispatch. Private source sync needs DESKTOP_SOURCE_TOKEN; otherwise
+  # deployment uses the verified preview committed in this repository.
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'production' }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select desktop source or verified committed preview
+        id: source
+        env:
+          DESKTOP_SOURCE_TOKEN: ${{ secrets.DESKTOP_SOURCE_TOKEN }}
+        run: |
+          if [ -z "$DESKTOP_SOURCE_TOKEN" ]; then
+            echo "::warning::Publishing the committed desktop preview. Add DESKTOP_SOURCE_TOKEN for automatic private desktop source sync; see docs/DESKTOP_PREVIEW.md."
+            echo "sync=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "sync=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Read the desktop source at its current default branch
+        if: steps.source.outputs.sync == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: AlexM1010/visualise-music-desktop
+          token: ${{ secrets.DESKTOP_SOURCE_TOKEN }}
+          path: desktop-source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate the real desktop viewer with public browser data
+        if: steps.source.outputs.sync == 'true'
+        run: python scripts/build_preview.py --desktop desktop-source
+      - name: Check the showcase, audio and preserved Freesound library
+        run: |
+          python scripts/check_showcase.py
+          python .github/check_site.py
+          node --check assets/showcase.js
+          node --check demo/adapter.js
+          node scripts/check_viewer.mjs
+      - name: Install isolated browser smoke dependencies
+        run: |
+          npm install --prefix .qa --no-save --no-package-lock playwright
+          .qa/node_modules/.bin/playwright install --with-deps chromium
+      - name: Exercise the shared viewer before publishing
+        run: node scripts/smoke_preview.mjs
+      - name: Stage only public website files
+        run: |
+          mkdir -p dist
+          cp index.html explore.html privacy.html eula.html favicon.ico CNAME dist/
+          cp -R assets demo dist/
+      - uses: actions/configure-pages@v6
+        if: github.event_name != 'pull_request'
+      - name: Package Pages website
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy verified showcase
+        id: deployment
+        uses: actions/deploy-pages@v5
